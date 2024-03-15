@@ -1,0 +1,35 @@
+- name: Install Nginx
+  hosts: all
+  connection: local
+  become: yes
+  tasks:
+    - name: Update apt package index
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+ 
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+ 
+    - name: Ensure Nginx is running and enabled
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+ 
+    - name: Copy Nginx server block files
+      template:
+        src: "templates/site.conf.j2"
+        dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
+      loop:
+        - "127.0.0.1"
+        - "127.0.0.2"
+        - "127.0.0.3"
+      register: template_result
+ 
+    - name: Reload Nginx if configuration changed
+      systemd:
+        name: nginx
+        state: reloaded
+      when: template_result is changed
+ 
